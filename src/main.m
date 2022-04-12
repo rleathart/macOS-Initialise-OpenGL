@@ -5,6 +5,7 @@
 
 NSOpenGLContext* GLContext;
 int Running = 1;
+int WindowIsResizing;
 
 @interface AppDelegate : NSObject<NSApplicationDelegate, NSWindowDelegate>
 @end
@@ -12,6 +13,7 @@ int Running = 1;
 @implementation AppDelegate
 - (void)windowDidResize:(NSNotification*)notification
 {
+  WindowIsResizing = 1;
   NSWindow* Window = [notification object];
   NSRect Frame = [Window contentView].bounds;
 
@@ -23,6 +25,7 @@ int Running = 1;
   glViewport(0, 0, Frame.size.width*Scale, Frame.size.height*Scale);
 
   [GLContext update];
+  WindowIsResizing = 0;
 }
 
 - (void)windowWillClose:(id)sender
@@ -31,24 +34,47 @@ int Running = 1;
 }
 @end
 
+void RenderThread(NSOpenGLContext* GLContext, NSWindow* Window)
+{
+  [GLContext makeCurrentContext];
+  while (Running)
+  {
+    if (WindowIsResizing)
+      continue;
+
+    glClearColor(0, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glBegin(GL_TRIANGLES);
+    {
+      glColor3f(1, 0, 0); glVertex2f(-0.5, -0.5);
+      glColor3f(0, 1, 0); glVertex2f(0, 0.5);
+      glColor3f(0, 0, 1); glVertex2f(0.5, -0.5);
+    }
+    glEnd();
+
+    [GLContext flushBuffer]; // NOTE(robin): Swap the backbuffer
+  }
+}
+
 int main(void)
 {
   NSApplication* App = [NSApplication sharedApplication];
   [NSApp setActivationPolicy: NSApplicationActivationPolicyRegular];
 
   AppDelegate* MainAppDelegate = [[AppDelegate alloc] init];
-  [App setDelegate: MainAppDelegate];
+  [App setDelegate:MainAppDelegate];
   [NSApp finishLaunching];
 
   NSRect ScreenRect = [[NSScreen mainScreen] frame];
   NSRect Frame = NSMakeRect(0, 0, 1024, 768);
   NSWindow* Window = [[NSWindow alloc] initWithContentRect:Frame
-                     styleMask:NSWindowStyleMaskTitled
-                                     | NSWindowStyleMaskClosable
-                                     | NSWindowStyleMaskMiniaturizable
-                                     | NSWindowStyleMaskResizable
-                       backing:NSBackingStoreBuffered
-                         defer:NO];
+                                                 styleMask:NSWindowStyleMaskTitled
+                                                 | NSWindowStyleMaskClosable
+                                                 | NSWindowStyleMaskMiniaturizable
+                                                 | NSWindowStyleMaskResizable
+                                                 backing:NSBackingStoreBuffered
+                                                   defer:NO];
 
   [Window makeKeyAndOrderFront:nil];
   [Window setDelegate:MainAppDelegate];
@@ -68,42 +94,23 @@ int main(void)
   int SwapMode = 1;
   [GLContext setValues:&SwapMode forParameter:NSOpenGLContextParameterSwapInterval];
   [GLContext setView:[Window contentView]];
-  [GLContext makeCurrentContext];
+
+  // NOTE(robin): We need to have our OpenGL commands execute in a separate thread
+  // so that the main thread is free to process our event loop. Otherwise window
+  // dragging (and probably other things) are delayed.
+  [[[NSThread alloc] initWithBlock: ^{RenderThread(GLContext, Window);}] start];
 
   while (Running)
   {
-    NSEvent* Event;
+    NSEvent* Event = [NSApp nextEventMatchingMask: NSEventMaskAny
+                                        untilDate: [NSDate distantFuture]
+                                           inMode: NSDefaultRunLoopMode
+                                          dequeue: YES];
 
-    // NOTE(robin): You probably want to handle the message queue and rendering
-    // commands in separate threads. This is just shown here for simplicity.
-    do
-    {
-      Event = [NSApp nextEventMatchingMask: NSEventMaskAny
-                                 untilDate: nil
-                                    inMode: NSDefaultRunLoopMode
-                                   dequeue: true];
+    // NOTE(robin): Process each event here however you like
 
-      switch ([Event type])
-      {
-        default:
-          [NSApp sendEvent: Event];
-      }
-
-
-    } while (Event);
-
-    glClearColor(0, 0, 0, 1);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glBegin(GL_TRIANGLES);
-    {
-      glColor3f(1, 0, 0); glVertex2f(-0.5, -0.5);
-      glColor3f(0, 1, 0); glVertex2f(0, 0.5);
-      glColor3f(0, 0, 1); glVertex2f(0.5, -0.5);
-    }
-    glEnd();
-
-    [GLContext flushBuffer]; // NOTE(robin): Swap the backbuffer
+    [NSApp sendEvent: Event];
+    [NSApp updateWindows];
   }
 
   return 0;
