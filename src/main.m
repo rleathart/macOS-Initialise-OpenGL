@@ -5,27 +5,16 @@
 
 NSOpenGLContext* GLContext;
 int Running = 1;
-int WindowIsResizing;
+int NeedsResize = 0;
 
 @interface AppDelegate : NSObject<NSApplicationDelegate, NSWindowDelegate>
 @end
 
 @implementation AppDelegate
-- (void)windowDidResize:(NSNotification*)notification
+
+- (void)windowDidResize:(NSNotification *) notification
 {
-  WindowIsResizing = 1;
-  NSWindow* Window = [notification object];
-  NSRect Frame = [Window contentView].bounds;
-
-  // NOTE(robin): This assumes retina scaling at 200%. For proper code you would
-  // want to query what the current display scaling is set to.
-  float Scale = 2;
-
-  glLoadIdentity();
-  glViewport(0, 0, Frame.size.width*Scale, Frame.size.height*Scale);
-
-  [GLContext update];
-  WindowIsResizing = 0;
+  NeedsResize = 1;
 }
 
 - (void)windowWillClose:(id)sender
@@ -37,10 +26,23 @@ int WindowIsResizing;
 void RenderThread(NSOpenGLContext* GLContext, NSWindow* Window)
 {
   [GLContext makeCurrentContext];
+
   while (Running)
   {
-    if (WindowIsResizing)
-      continue;
+    if (NeedsResize)
+    {
+      NSRect Frame = [Window contentView].bounds;
+      double Scale = [[Window screen] backingScaleFactor];
+
+      glLoadIdentity();
+      glViewport(0, 0, Frame.size.width * Scale, Frame.size.height * Scale);
+
+      // NOTE(robin): update has to be called on the main thread so we dispatch it here
+      [GLContext performSelectorOnMainThread:@selector(update)
+                                  withObject:nil
+                               waitUntilDone:YES];
+      NeedsResize = 0;
+    }
 
     glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -94,10 +96,14 @@ int main(void)
   int SwapMode = 1;
   [GLContext setValues:&SwapMode forParameter:NSOpenGLContextParameterSwapInterval];
   [GLContext setView:[Window contentView]];
+  [GLContext makeCurrentContext];
 
-  // NOTE(robin): We need to have our OpenGL commands execute in a separate thread
-  // so that the main thread is free to process our event loop. Otherwise window
-  // dragging (and probably other things) are delayed.
+  printf("OpenGL Renderer: %s\n", glGetString(GL_RENDERER));
+  printf("OpenGL Version: %s\n", glGetString(GL_VERSION));
+
+  // NOTE(robin): On macOS only the main thread is permitted to update the UI and
+  // receive events. Because of this, we reserve the main thread for event processing
+  // and create a new thread to execute our opengl commands.
   [[[NSThread alloc] initWithBlock: ^{RenderThread(GLContext, Window);}] start];
 
   while (Running)
