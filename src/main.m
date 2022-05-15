@@ -7,10 +7,12 @@ NSOpenGLContext* GLContext;
 int Running = 1;
 int NeedsResize = 0;
 
-@interface AppDelegate : NSObject<NSApplicationDelegate, NSWindowDelegate>
+// NOTE(robin): We need a very simple delegate here to allow us
+// to access information about when the window is closed or resized.
+@interface WindowDelegate : NSObject<NSWindowDelegate>
 @end
 
-@implementation AppDelegate
+@implementation WindowDelegate
 
 - (void)windowDidResize:(NSNotification *) notification
 {
@@ -63,12 +65,8 @@ int main(void)
 {
   NSApplication* App = [NSApplication sharedApplication];
   [NSApp setActivationPolicy: NSApplicationActivationPolicyRegular];
-
-  AppDelegate* MainAppDelegate = [[AppDelegate alloc] init];
-  [App setDelegate:MainAppDelegate];
   [NSApp finishLaunching];
 
-  NSRect ScreenRect = [[NSScreen mainScreen] frame];
   NSRect Frame = NSMakeRect(0, 0, 1024, 768);
   NSWindow* Window = [[NSWindow alloc] initWithContentRect:Frame
                                                  styleMask:NSWindowStyleMaskTitled
@@ -79,7 +77,7 @@ int main(void)
                                                    defer:NO];
 
   [Window makeKeyAndOrderFront:nil];
-  [Window setDelegate:MainAppDelegate];
+  [Window setDelegate:[[WindowDelegate alloc] init]];
   [Window center];
 
   NSOpenGLPixelFormatAttribute Attributes[] =
