@@ -86,6 +86,14 @@ int main(void)
   {
     NSOpenGLPFAAccelerated,
     NSOpenGLPFADoubleBuffer,
+
+    // NOTE(robin): Choose a legacy profile if you want to use the fixed function pipeline.
+    // Otherwise choose a modern profile to get a context that is compatible with the
+    // modern shader based pipeline.
+    NSOpenGLPFAOpenGLProfile,
+    NSOpenGLProfileVersionLegacy,
+    // NSOpenGLProfileVersion3_2Core,
+    // NSOpenGLProfileVersion4_1Core,
     0
   };
 
