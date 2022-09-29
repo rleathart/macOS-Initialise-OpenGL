@@ -1,23 +1,18 @@
 #!/bin/sh
 
-if [ ! -d build ]; then
-  mkdir build
-fi
+[ -d build ] || mkdir build
+cd build
 
-pushd build > /dev/null
-
-CommonCompilerFlags="
--g
+CompilerFlags="
 -Wno-deprecated-declarations
 -fdiagnostics-absolute-paths
 -framework AppKit
 -framework OpenGL
 "
 
-clang $CommonCompilerFlags ../src/main.m -o main
+clang $CompilerFlags ../src/modern.m -o modern
+clang $CompilerFlags ../src/legacy.m -o legacy
 
 ErrorCode=$?
-
-popd > /dev/null
 
 exit $ErrorCode
