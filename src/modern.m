@@ -246,8 +246,8 @@ int main(void)
       break;
   }
 
-  glGenVertexArrays = dlsym(LibGL, "glGenVertexArrays");
-  glBindVertexArray = dlsym(LibGL, "glBindVertexArray");
+  glGenVertexArrays = (glGenVertexArraysFn*)dlsym(LibGL, "glGenVertexArrays");
+  glBindVertexArray = (glBindVertexArrayFn*)dlsym(LibGL, "glBindVertexArray");
 
   // =========================Event loop=========================
 
