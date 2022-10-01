@@ -88,8 +88,8 @@ void RenderThread(NSOpenGLContext* GLContext, NSWindow* Window)
     }
     glEnd();
 
-    // NOTE(robin): This is the primary reason that we require a separate thread for the rendering. Calling
-    // flushBuffer will block, so we cannot call it in the main thread.
+    // NOTE(robin): This is the primary reason that we require a separate thread for the rendering.
+    // Calling flushBuffer will block, so we cannot call it in the main thread.
     [GLContext flushBuffer]; // NOTE(robin): Swap the backbuffer
   }
 }
