@@ -132,6 +132,7 @@ int main(void)
 
   NSApplication* App = [NSApplication sharedApplication];
   [NSApp setActivationPolicy: NSApplicationActivationPolicyRegular];
+  [NSApp activateIgnoringOtherApps:YES];
   [NSApp finishLaunching];
 
   NSRect Frame = NSMakeRect(0, 0, 1024, 768);
