@@ -5,12 +5,19 @@ XCode** or `.nib` files or storyboards? Would you like someone to present you wi
 code** that you need to get started? If "YES!" is the answer to any of those questions, this repo is
 for you!
 
-I wasn't able to find any guides that showed the bare minimum necessary to
-create an OpenGL window using only native APIs. This repository is providing
-just that!
+Example code is provided for both legacy and core contexts. Note that the only real difference
+between legacy and core contexts is:
+
+```obj-c
+  NSOpenGLPixelFormatAttribute Profile = NSOpenGLProfileVersionLegacy;
+  // vs
+  NSOpenGLPixelFormatAttribute Profile = NSOpenGLProfileVersion4_1Core;
+```
+
+and of course the loading of OpenGL extensions for the core context.
 
 Note that this repo does not intend to give you a tutorial on OpenGL, it only aims to guide you
-through **native context creation**.
+through **context creation** with only native APIs.
 
 ![Opengl triangle image](../media/Triangle.png?raw=true)
 
